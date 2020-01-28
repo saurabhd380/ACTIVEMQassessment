@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:jms="http://www.mulesoft.org/schema/mule/jms" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:ftp="http://www.mulesoft.org/schema/mule/ftp"
+	xmlns:file="http://www.mulesoft.org/schema/mule/file" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
+http://www.mulesoft.org/schema/mule/ftp http://www.mulesoft.org/schema/mule/ftp/current/mule-ftp.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/jms http://www.mulesoft.org/schema/mule/jms/current/mule-jms.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="440f30ba-ed0f-4560-8cf7-a2bb38f86514" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<file:config name="File_Config" doc:name="File Config" doc:id="ae4fe2b0-04f8-4a04-833b-24c02789fcd0" >
+		<file:connection />
+	</file:config>
+	<jms:config name="JMS_Config" doc:name="JMS Config" doc:id="38a8e610-fed5-4e68-863f-dd3618258d0f" >
+		<jms:active-mq-connection username="admin" password="admin">
+			<jms:caching-strategy >
+				<jms:no-caching />
+			</jms:caching-strategy>
+			<jms:factory-configuration brokerUrl="tcp://localhost:61616" />
+		</jms:active-mq-connection>
+	</jms:config>
+	<flow name="problem2Flow" doc:id="db16313c-3234-40e3-b08e-bdaf5a9be346" >
+		<http:listener doc:name="Listener" doc:id="aa1345eb-6b88-4759-86fb-ebde63bd585e" config-ref="HTTP_Listener_config" path="/jm" allowedMethods="GET">
+			<non-repeatable-stream />
+		</http:listener>
+		<file:read doc:name="Read" doc:id="4e5e7724-bd0a-4ac8-880b-0f53e1cc8cb0" config-ref="File_Config" path="C:\Users\Admin\Desktop\SalesJan2009.csv"/>
+		<ee:transform doc:name="Transform Message" doc:id="b8fb86a2-d57e-4ee8-8cf3-2244e8d0e086" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload filter ($.Price == "1200") and ($.Payment_Type == "Mastercard") and ($.Country =="United States") or ($.Country == "Canada") or ($.Country == "Spain") map     {
+	Transcation_date:$.Transaction_date as String{format:'DD/MM/YYYY'} ,
+	Product:$.Product,
+	Price:$.Price,
+	Payment_Type:$.Payment_Type,
+	Name:$.Name,
+	City:$.City,
+	State:$.State,
+	Country:$.Country ,
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="d2350ee9-1c3e-4a83-9426-75c8dd64e6be" message="#[payload]"/>
+		<jms:publish doc:name="Publish" doc:id="a869bda6-5e27-41b8-9d94-ff29884a9ce5" config-ref="JMS_Config" destination="employee"/>
+	</flow>
+	<flow name="problem2Flow1" doc:id="5bd69d1f-967d-47e1-8197-5afb7df8f1ce" >
+		<jms:consume doc:name="Consume" doc:id="dc769871-7af2-4b29-a54b-fbbf03942a81" config-ref="JMS_Config" destination="employee">
+			<jms:consumer-type >
+				<jms:queue-consumer />
+			</jms:consumer-type>
+		</jms:consume>
+		<logger level="INFO" doc:name="Logger" doc:id="569ffd44-7823-42f2-9275-827276e8f63c" message="incoming message----#[payload]"/>
+	</flow>
+</mule>

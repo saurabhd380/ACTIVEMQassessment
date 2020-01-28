@@ -1,0 +1,26 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<types:mule xmlns:types="http://www.mulesoft.org/schema/mule/types">
+  <types:catalog>
+    <types:type name="abc" format="csv">
+      <types:shape format="weave" example="examples/sample.csv"><![CDATA[%dw 2.0
+
+type abc = Array<{|  Transaction_date: String,   Product: String,   Price: String,   Payment_Type: String,   Name: String,   City: String,   State: String,   Country: String|}>
+
+]]></types:shape>
+      <types:properties>
+        <types:property name="headerLineNumber" value="0"/>
+        <types:property name="header" value="true"/>
+        <types:property name="isQuotedString" value="false"/>
+      </types:properties>
+    </types:type>
+  </types:catalog>
+  <types:enrichment select="#b8fb86a2-d57e-4ee8-8cf3-2244e8d0e086">
+    <types:processor-declaration>
+      <types:input-event>
+        <types:message>
+          <types:payload type="abc"/>
+        </types:message>
+      </types:input-event>
+    </types:processor-declaration>
+  </types:enrichment>
+</types:mule>
